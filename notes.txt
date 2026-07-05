@@ -1,0 +1,86 @@
+========================================================================
+POTHOLE DETECTION SYSTEM - RUN GUIDE & SYSTEM NOTES
+========================================================================
+
+Follow these steps to set up and run the Pothole Detection System.
+
+------------------------------------------------------------------------
+1. PREREQUISITES
+------------------------------------------------------------------------
+- Python 3.8 or higher installed on your system.
+- (Optional) Nvidia CUDA GPU + Toolkit configured for GPU-accelerated 
+  YOLO inference. (If unavailable, the system automatically falls back to CPU).
+
+------------------------------------------------------------------------
+2. INSTALLATION & SETUP
+------------------------------------------------------------------------
+Step 2.1: Open your terminal/command prompt at the project root directory.
+
+Step 2.2: Create a virtual environment (recommended):
+  python -m venv .venv
+
+Step 2.3: Activate the virtual environment:
+  - On Windows (PowerShell):
+    .venv\Scripts\Activate.ps1
+  - On Windows (Command Prompt):
+    .venv\Scripts\activate.bat
+  - On macOS/Linux:
+    source .venv/bin/activate
+
+Step 2.4: Install required Python dependencies:
+  pip install -r requirements.txt
+
+------------------------------------------------------------------------
+3. RUNNING THE APPLICATION
+------------------------------------------------------------------------
+Step 3.1: Run the Flask web application:
+  python app.py
+
+Step 3.2: Open your web browser and navigate to:
+  http://127.0.0.1:5000
+
+------------------------------------------------------------------------
+4. DASHBOARD CREDENTIALS
+------------------------------------------------------------------------
+Use the following demo credentials to log in:
+- Email:    tester@gmail.com
+- Password: teste@123
+
+------------------------------------------------------------------------
+5. OPERATION MODES & SETUP
+------------------------------------------------------------------------
+Once logged in, you can select one of three input modes:
+
+A. Video Upload Mode
+   - Upload any MP4, AVI, MOV, or MKV video file.
+   - Adjust playback speed (e.g. 0.5x, 1.0x, 2.0x).
+   - Use Play/Pause buttons to control inference.
+
+B. Phone Browser Mode
+   - Streams live footage from your mobile camera to the system.
+   - Both the PC server and mobile phone must be on the same network (e.g., 5GHz Wi-Fi).
+   - Navigate to http://<PC_IP_ADDRESS>:5000/video on your phone to uplink.
+
+C. RTSP/IP Stream Mode
+   - Connects directly to external security cameras or network streams.
+   - Provide the RTSP stream URL to initiate real-time analytics.
+
+------------------------------------------------------------------------
+6. PERFORMANCE TUNING (ENVIRONMENT VARIABLES)
+------------------------------------------------------------------------
+You can customize the detection pipeline parameters using environment variables:
+
+- POTHOLE_MODEL_PATH    Path to custom weights (default: best.pt)
+- INFER_IMGSZ           YOLO inference image size (default: 512)
+- MAX_CAPTURE_WIDTH     Resize width for video processing (default: 800)
+- STREAM_JPEG_QUALITY   Compression quality of live phone frames (default: 72)
+- TARGET_LATENCY_MS     Target frame-interval timing in ms (default: 450)
+
+Example (PowerShell):
+  $env:INFER_IMGSZ = "448"
+  $env:STREAM_JPEG_QUALITY = "68"
+  python app.py
+
+Example (Bash):
+  INFER_IMGSZ=448 STREAM_JPEG_QUALITY=68 python app.py
+========================================================================
