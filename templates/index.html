@@ -1,0 +1,2436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Real-time AI-powered pothole detection system with YOLO model, live video analysis, and comprehensive reporting." />
+    <title>Enterprise Pothole Detection & Route Analysis System</title>
+    
+    <!-- Google Fonts & Libraries -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    
+    <!-- Leaflet.js Map Styles & Scripts -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg: #07090e;
+            --surface-card: rgba(18, 24, 38, 0.6);
+            --surface-solid: #0d111a;
+            --surface-hover: rgba(255, 255, 255, 0.05);
+            --text-main: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent: #f59e0b;
+            --accent-glow: rgba(245, 158, 11, 0.25);
+            --accent-strong: #fbbf24;
+            --border: rgba(245, 158, 11, 0.2);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            --glass-blur: blur(20px);
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        [data-theme="light"] {
+            --bg: #f3f4f6;
+            --surface-card: rgba(255, 255, 255, 0.8);
+            --surface-solid: #ffffff;
+            --surface-hover: rgba(0, 0, 0, 0.04);
+            --text-main: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #9ca3af;
+            --accent: #d97706;
+            --accent-glow: rgba(217, 119, 6, 0.15);
+            --accent-strong: #b45309;
+            --border: rgba(217, 119, 6, 0.22);
+            --border-subtle: rgba(0, 0, 0, 0.08);
+            
+            --success: #059669;
+            --success-glow: rgba(5, 150, 105, 0.15);
+            --warning: #d97706;
+            --warning-glow: rgba(217, 119, 6, 0.15);
+            --danger: #dc2626;
+            --danger-glow: rgba(220, 38, 38, 0.15);
+            
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            color: var(--text-main);
+            background: var(--bg);
+            background-image: radial-gradient(circle at 10% 20%, rgba(245, 158, 11, 0.03) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.02) 0%, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            overflow-y: auto;
+            line-height: 1.5;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .page {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Top Header Navigation */
+        .header {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 18px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: var(--shadow);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+        }
+
+        .header-brand h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--text-main) 30%, var(--accent-strong));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-brand p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge-mode {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        /* Top Row KPIs */
+        .kpis-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border);
+        }
+
+        .kpi-info h4 {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-top: 4px;
+            color: var(--text-main);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .kpi-sub {
+            font-size: 0.75rem;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kpi-sub.excellent { color: var(--success); }
+        .kpi-sub.fair { color: var(--warning); }
+        .kpi-sub.critical { color: var(--danger); }
+
+        .kpi-icon-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        /* Grid Layout */
+        .grid-workspace {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .column-primary {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+        }
+
+        /* Video Feed Panel */
+        .feed-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+        }
+
+        .card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feed-container {
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            background: #000;
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            position: relative;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .feed-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .feed-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            color: var(--text-secondary);
+            background: rgba(8, 11, 17, 0.85);
+            text-align: center;
+            z-index: 5;
+        }
+
+        .feed-placeholder svg {
+            width: 54px;
+            height: 54px;
+            color: var(--accent);
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        /* Interactive Tabs Section */
+        .tabs-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+        }
+
+        .tab-headers {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all 0.25s ease;
+            font-family: inherit;
+        }
+
+        .tab-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-glow);
+            color: var(--accent-strong);
+            border: 1px solid var(--border);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Map and Routing Styles */
+        .map-grid {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .map-grid { grid-template-columns: 1fr; }
+        }
+
+        .leaflet-container {
+            background: var(--surface-solid);
+            font-family: inherit;
+        }
+
+        /* Custom Vehicle Marker Animation */
+        .custom-car-icon {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vehicle-core {
+            width: 12px;
+            height: 12px;
+            background: #60a5fa;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
+            z-index: 2;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .radar-pulse {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: rgba(96, 165, 250, 0.25);
+            border: 1px solid rgba(96, 165, 250, 0.5);
+            border-radius: 50%;
+            animation: radar-expand 1.8s infinite ease-out;
+            z-index: 1;
+        }
+        @keyframes radar-expand {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
+        }
+
+        .route-telemetry-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--surface-solid);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .route-meta h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .route-meta p {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .route-metrics-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .route-metric-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .route-metric-item span:first-child { color: var(--text-secondary); }
+        .route-metric-item span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        /* Route Comparison Dashboard Table */
+        .route-comp-box {
+            margin-top: 16px;
+            background: var(--surface-solid);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .route-comp-title {
+            padding: 10px 14px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        /* Charts Tab Styles */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .chart-box {
+            background: var(--surface-solid);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            height: 240px;
+            position: relative;
+        }
+
+        .chart-box h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        /* Log Table styling */
+        .table-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: left;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: var(--surface-solid);
+            color: var(--accent);
+            border-bottom: 2px solid var(--border);
+            padding: 12px 14px;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            z-index: 2;
+        }
+
+        tbody td {
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 10px 14px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background: var(--surface-hover);
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        tbody tr.new-row {
+            animation: flashRow 1.5s ease-out;
+        }
+
+        @keyframes flashRow {
+            0% { background: rgba(245, 158, 11, 0.25); }
+            100% { background: transparent; }
+        }
+
+        .shot-link {
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 2px;
+            display: inline-flex;
+            transition: all 0.2s ease;
+        }
+
+        .shot-link:hover {
+            border-color: var(--accent);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .shot-link img {
+            height: 32px;
+            max-width: 58px;
+            object-fit: cover;
+            border-radius: 4px;
+            display: block;
+        }
+
+        /* Control Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+        }
+
+        .section-card h3 {
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            color: var(--accent);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 6px;
+        }
+
+        /* Mode Selection tabs */
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .tab-mode {
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-secondary);
+            padding: 8px 4px;
+            font-weight: 600;
+            font-size: 0.72rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.25s ease;
+            font-family: inherit;
+        }
+
+        .tab-mode:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+        }
+
+        .tab-mode.active {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        /* Input Controls, dropdowns, inputs */
+        input[type="file"],
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            background: var(--surface-solid);
+            color: var(--text-main);
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: border-color 0.25s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            padding: 10px 14px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--surface-hover);
+            border-color: var(--border);
+            transform: translateY(-1px);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--accent), #d97706);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .btn.primary:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+        }
+
+        .btn.stop {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+        }
+
+        .btn.stop:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.16);
+            border-color: var(--danger);
+        }
+
+        .btn.success-btn {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        .btn.success-btn:hover:not(:disabled) {
+            background: rgba(16, 185, 129, 0.16);
+            border-color: var(--success);
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        /* Playback and range sliders */
+        .playback-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .range-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            height: 5px;
+            background: var(--surface-solid);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .range-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 35px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Stats Grid sidebar details */
+        .stats-sidebar-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-box .lbl {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .stat-box .val {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .theme-toggle {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            color: var(--text-main);
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.25s ease;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            background: var(--surface-hover);
+        }
+
+        /* Screenshot Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-wrapper {
+            max-width: min(95vw, 1100px);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .modal-wrapper img {
+            max-width: 100%;
+            max-height: calc(90vh - 60px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: #000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .modal-close-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Status colors */
+        .status-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 20px;
+            padding: 3px 10px;
+            border: 1px solid var(--border-subtle);
+        }
+        .status-badge.running {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 10px var(--success-glow);
+        }
+        .status-badge.warning {
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        .status-badge.stopped, .status-badge.idle {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.06);
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 10px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        #feed-error {
+            color: var(--danger);
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 8px;
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+        }
+
+        /* Dynamic Alerts styling */
+        .alerts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 4px;
+            width: 100%;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            font-size: 0.82rem;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            animation: slideDown 0.3s ease-out;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .alert-item.danger {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid var(--danger);
+            color: #ef4444;
+        }
+
+        .alert-item.warning {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid var(--warning);
+            color: #fbbf24;
+        }
+
+        .alert-icon {
+            font-size: 1.25rem;
+            animation: pulse-alert 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-alert {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <!-- Dashboard Header -->
+        <header class="header">
+            <div class="header-brand">
+                <h1>⚡ Pothole AI Sentinel</h1>
+                <p>Enterprise Infrastructure Inspection & Real-Time Traffic Routing Guidance</p>
+            </div>
+            <div class="header-actions">
+                <span class="badge-mode" id="active-mode-badge">Mode: Video Upload</span>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙 Dark Mode</button>
+                <a href="/logout" class="btn" style="width: auto; padding: 6px 12px; font-size: 0.78rem;">🚪 Logout</a>
+            </div>
+        </header>
+
+        <!-- KPI Scorecards -->
+        <section class="kpis-row">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Total Potholes Detected</h4>
+                    <div class="kpi-val" id="kpi-total-potholes">0</div>
+                    <div class="kpi-sub" id="kpi-total-sub">Cumulative scan count</div>
+                </div>
+                <div class="kpi-icon-wrap" style="color: var(--danger);">🕳️</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Road Health Score</h4>
+                    <div class="kpi-val" id="kpi-road-health">100.0</div>
+                    <div class="kpi-sub excellent" id="kpi-road-health-sub">Excellent Condition</div>
+                </div>
+                <div class="kpi-icon-wrap" style="color: var(--success);" id="kpi-road-health-icon">🛣️</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Average Pothole Depth</h4>
+                    <div class="kpi-val" id="kpi-avg-depth">0.0 cm</div>
+                    <div class="kpi-sub" id="kpi-avg-depth-sub">Average logged depth</div>
+                </div>
+                <div class="kpi-icon-wrap" style="color: #60a5fa;">📐</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Risk Assessment</h4>
+                    <div class="kpi-val" id="kpi-risk-level">Low Risk</div>
+                    <div class="kpi-sub" id="kpi-risk-sub" style="color: var(--success);">All systems normal</div>
+                </div>
+                <div class="kpi-icon-wrap" style="color: var(--warning);" id="kpi-risk-icon">⚠️</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Estimated Repair Cost</h4>
+                    <div class="kpi-val" id="kpi-repair-cost">₹0</div>
+                    <div class="kpi-sub" id="kpi-repair-sub">Based on pothole depth</div>
+                </div>
+                <div class="kpi-icon-wrap" style="color: #10b981;">💰</div>
+            </div>
+        </section>
+
+        <!-- Workspace Grid -->
+        <section class="grid-workspace">
+            
+            <!-- Left Workspace (Feed, Map, Charts, Logs) -->
+            <div class="column-primary">
+                
+                <!-- Dynamic Alerts Panel -->
+                <div class="alerts-list" id="alerts-banner-list"></div>
+                
+                <!-- Live Video Feed Viewer Card -->
+                <article class="feed-card">
+                    <div class="card-head">
+                        <h2 class="card-title">📹 Live Telemetry Video Stream</h2>
+                        <span class="status-badge idle" id="status-pill">Idle</span>
+                    </div>
+                    <div class="feed-container">
+                        <img id="feed" alt="Real-time pothole detection video feed" />
+                        <div class="feed-placeholder" id="feed-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h8A2.5 2.5 0 0 1 16 7.5V8l3.6-2.2A1 1 0 0 1 21 6.7v10.6a1 1 0 0 1-1.4.9L16 16v.5a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 3 16.5v-9Z" />
+                            </svg>
+                            <strong>Inference Stream Offline</strong>
+                            <span style="font-size:0.75rem; opacity:0.6;">Select source configuration and click Start Detection</span>
+                        </div>
+                    </div>
+                    <p id="feed-error" style="display:none;"></p>
+                    <p style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary);" id="status-message">Ready. Choose a mode and press Start Detection.</p>
+                </article>
+
+                <!-- Interactive Analytics & Mapping Tabs Card -->
+                <div class="tabs-card">
+                    <div class="tab-headers">
+                        <button class="tab-btn active" onclick="switchTab('map-tab')">🗺️ Route GPS & Mapping</button>
+                        <button class="tab-btn" onclick="switchTab('charts-tab')">📊 Real-Time Analytics</button>
+                        <button class="tab-btn" onclick="switchTab('log-tab')">📋 Interactive Detection Log</button>
+                    </div>
+
+                    <!-- Tab 1: Map & Routing Analysis -->
+                    <div class="tab-content active" id="map-tab">
+                        <div class="map-grid">
+                            <div id="map" style="height: 380px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);"></div>
+                            <div class="route-telemetry-panel">
+                                <div class="route-meta">
+                                    <h4>Simulated Corridor</h4>
+                                    <select id="route-selector" style="margin-top: 4px; padding: 6px; font-size:0.78rem;">
+                                        <option value="101">Broadway Avenue (R-101)</option>
+                                        <option value="102">5th Avenue Express (R-102)</option>
+                                        <option value="103">11th Ave Freight Bypass (R-103)</option>
+                                    </select>
+                                </div>
+                                <ul class="route-metrics-list">
+                                    <li class="route-metric-item">
+                                        <span>Corridor Length</span>
+                                        <span id="route-val-length">0.0 km</span>
+                                    </li>
+                                    <li class="route-metric-item">
+                                        <span>Scan Progress</span>
+                                        <span id="route-val-progress">0%</span>
+                                    </li>
+                                    <li class="route-metric-item">
+                                        <span>Pothole Density</span>
+                                        <span id="route-val-density">0.0 / km</span>
+                                    </li>
+                                    <li class="route-metric-item">
+                                        <span>Estimated Speed</span>
+                                        <span id="route-val-speed">0 km/h</span>
+                                    </li>
+                                    <li class="route-metric-item">
+                                        <span>Active Route RQI</span>
+                                        <span id="route-val-rqi" style="font-weight: 800;">100.0</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Route Comparison Panel -->
+                        <div class="route-comp-box">
+                            <div class="route-comp-title">🔀 Smart Routing Safety Index</div>
+                            <div style="overflow-x: auto;">
+                                <table style="font-size:0.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Corridor Route Name</th>
+                                            <th>Total Potholes</th>
+                                            <th>Pothole / km</th>
+                                            <th>Quality (RQI)</th>
+                                            <th>Slowdown (%)</th>
+                                            <th>Vehicle Damage Risk</th>
+                                            <th>Routing Recommendation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="route-comparison-rows">
+                                        <!-- Will populate dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Analytics & Graphs -->
+                    <div class="tab-content" id="charts-tab">
+                        <div class="charts-container">
+                            <div class="chart-box">
+                                <h4>Pothole Severity Class</h4>
+                                <canvas id="depthChart"></canvas>
+                            </div>
+                            <div class="chart-box">
+                                <h4>Detection Frequency Timeline</h4>
+                                <canvas id="timelineChart"></canvas>
+                            </div>
+                            <div class="chart-box" style="position: relative; display: flex; flex-direction: column; align-items: center;">
+                                <h4>Road Health Gauge</h4>
+                                <div style="position: relative; width: 100%; height: 160px; margin-top: 10px;">
+                                    <canvas id="healthGaugeChart"></canvas>
+                                    <div id="gauge-text" style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); text-align: center;">
+                                        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1;" id="gauge-score">100</div>
+                                        <div style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--success); margin-top: 2px;" id="gauge-label">Excellent</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Interactive Table Log -->
+                    <div class="tab-content" id="log-tab">
+                        <div class="table-scroll">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Video Time</th>
+                                        <th>Detected</th>
+                                        <th>Total Count</th>
+                                        <th>Length (cm)</th>
+                                        <th>Width (cm)</th>
+                                        <th>Depth (cm)</th>
+                                        <th>Severity</th>
+                                        <th>Visual Snapshot</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="log-body">
+                                    <!-- Table logs will insert dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar Workspace (Configuration & Controls) -->
+            <aside class="sidebar">
+                
+                <!-- Mode Selection -->
+                <div class="section-card">
+                    <h3>🎯 Mode Selection</h3>
+                    <div class="mode-tabs">
+                        <button class="tab-mode active" id="tab-upload">Upload</button>
+                        <button class="tab-mode" id="tab-phone">Phone App</button>
+                        <button class="tab-mode" id="tab-stream">RTSP Stream</button>
+                        <button class="tab-mode" id="tab-usb">USB Camera</button>
+                    </div>
+                </div>
+
+                <!-- Input Source Details -->
+                <div class="section-card">
+                    <h3>📁 Input Source Configuration</h3>
+                    <!-- Video Upload -->
+                    <div id="upload-controls" style="display:grid; gap:10px;">
+                        <input type="file" id="video-file" accept="video/mp4,video/avi,video/mov,video/mkv" />
+                        <button class="btn success-btn" id="upload-btn">⬆ Upload Video File</button>
+                    </div>
+                    <!-- Phone stream endpoint -->
+                    <div id="phone-controls" style="display:none; gap:10px;">
+                        <label style="font-size:0.75rem; color:var(--text-secondary);">Phone Web Uplink Endpoint:</label>
+                        <input type="text" id="phone-endpoint" value="/video" readonly />
+                        <p style="font-size:0.7rem; color:var(--text-muted);">Open this endpoint URL in your mobile device browser to stream high-resolution footage.</p>
+                    </div>
+                    <!-- RTSP Stream -->
+                    <div id="stream-controls" style="display:none; gap:10px;">
+                        <input type="text" id="stream-url" placeholder="rtsp://admin:pwd@192.168.1.100:554/stream1" />
+                        <button class="btn primary" id="set-stream-btn">Set Stream URL</button>
+                    </div>
+                    <!-- USB Camera -->
+                    <div id="usb-controls" style="display:none; gap:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <label style="font-size:0.75rem; color:var(--text-secondary);">Select Camera:</label>
+                            <button class="btn" id="refresh-usb-btn" style="padding:4px 8px; font-size:0.7rem; width:auto;">🔄 Scan</button>
+                        </div>
+                        <select id="usb-camera-index">
+                            <option value="1">USB Web Camera (Index 1)</option>
+                            <option value="0">Built-in Camera (Index 0)</option>
+                        </select>
+                        <button class="btn primary" id="set-usb-btn">Connect Camera</button>
+                        <p id="usb-status-text" style="font-size:0.72rem; color:var(--text-muted);"></p>
+                    </div>
+                </div>
+
+                <!-- System Controls -->
+                <div class="section-card">
+                    <h3>🚀 Inspection Actions</h3>
+                    <div style="display:grid; gap:8px;">
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn primary" id="start-btn" style="flex:1.2;">▶ Start Scan</button>
+                            <button class="btn stop" id="stop-btn" style="flex:0.8;">■ Stop</button>
+                        </div>
+                        <button class="btn success-btn" id="download-report-btn">📄 Download PDF Report</button>
+                        <button class="btn" id="download-samples-btn" style="border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05); color: var(--success);">📥 Download Sample Videos</button>
+                    </div>
+                </div>
+
+                <!-- Upload Playback Controls -->
+                <div class="section-card">
+                    <h3>⏩ Video Playback Controls</h3>
+                    <div style="display:grid; gap:10px;">
+                        <div class="playback-grid">
+                            <button class="btn" id="play-upload-btn">▶ Play</button>
+                            <button class="btn" id="pause-upload-btn">⏸ Pause</button>
+                        </div>
+                        <div class="range-wrapper">
+                            <input type="range" id="speed-slider" min="0.1" max="1.8" value="0.8" step="0.1" />
+                            <strong class="range-label" id="speed-label">0.8x</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optical Calibration -->
+                <div class="section-card">
+                    <h3>📐 Optical Calibration</h3>
+                    <div style="display:grid; gap:8px;">
+                        <input type="number" id="ref-cm" min="0" step="0.1" placeholder="Reference Size (cm)" />
+                        <input type="number" id="ref-px" min="0" step="0.1" placeholder="Reference Size (pixels)" />
+                        <div style="display:flex; gap:6px; margin-top:4px;">
+                            <button class="btn" id="apply-calib" style="flex:1;">Apply Calib</button>
+                            <button class="btn" id="reset-calib" style="flex:1;">Reset</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Telemetry Stats Panel -->
+                <div class="section-card">
+                    <h3>📈 Telemetry Details</h3>
+                    <div class="stats-sidebar-grid">
+                        <div class="stat-box"><span class="lbl">Inference Device</span><span class="val" id="st-device">CPU</span></div>
+                        <div class="stat-box"><span class="lbl">Active Status</span><span class="val" id="st-status">idle</span></div>
+                        <div class="stat-box"><span class="lbl">Current Frame Dets</span><span class="val" id="st-detections">0</span></div>
+                        <div class="stat-box"><span class="lbl">Total Scan Dets</span><span class="val" id="st-total">0</span></div>
+                        <div class="stat-box"><span class="lbl">Detections/Min</span><span class="val" id="st-dpm">0.0</span></div>
+                        <div class="stat-box"><span class="lbl">Capture Rate</span><span class="val" id="st-cfps">0.0 FPS</span></div>
+                        <div class="stat-box"><span class="lbl">Inference Rate</span><span class="val" id="st-ifps">0.0 FPS</span></div>
+                        <div class="stat-box"><span class="lbl">Network Rate</span><span class="val" id="st-sfps">0.0 FPS</span></div>
+                        <div class="stat-box"><span class="lbl">Latency</span><span class="val" id="st-lat">0 ms</span></div>
+                        <div class="stat-box"><span class="lbl">Avg Confidence</span><span class="val" id="st-conf">0.0</span></div>
+                        <div class="stat-box"><span class="lbl">Avg Size (L)</span><span class="val" id="st-length">0.0 cm</span></div>
+                        <div class="stat-box"><span class="lbl">Avg Size (W)</span><span class="val" id="st-width">0.0 cm</span></div>
+                        <div class="stat-box"><span class="lbl">Avg Area</span><span class="val" id="st-area">0.0 m²</span></div>
+                        <div class="stat-box"><span class="lbl">Avg Depth</span><span class="val" id="st-depth">0.0 cm</span></div>
+                        <div class="stat-box" style="grid-column: span 2;"><span class="lbl">Depth Severity Category</span><span class="val" id="st-dclass">none</span></div>
+                    </div>
+                </div>
+
+            </aside>
+        </section>
+
+        <footer class="footer">
+            Designed for Municipal Infrastructure Management & Connected Vehicle Integration · Powered by Flask + YOLO AI + Supervision
+        </footer>
+    </main>
+
+    <!-- Screenshot Modal -->
+    <div class="modal" id="shot-modal" role="dialog" aria-modal="true" aria-label="Detection screenshot preview">
+        <div class="modal-wrapper">
+            <button class="modal-close-btn" id="close-shot-modal">✕ Close Preview</button>
+            <img id="modal-shot" alt="Full size detection screenshot" />
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        const feed = document.getElementById("feed");
+        const feedError = document.getElementById("feed-error");
+        const feedPlaceholder = document.getElementById("feed-placeholder");
+        const shotModal = document.getElementById("shot-modal");
+        const modalShot = document.getElementById("modal-shot");
+        let activeMode = "upload";
+        let lastLogId = 0;
+        const MAX_TABLE_ROWS = 600;
+        const MAX_FEED_RETRIES = 3;
+        let feedRetries = 0;
+        let feedRetryTimer = null;
+
+        // Simulated GPS route coordinate segments (Manhattan Central)
+        const routeBroadway = [
+            [40.7681, -73.9819], [40.7661, -73.9829], [40.7644, -73.9839],
+            [40.7629, -73.9845], [40.7590, -73.9845], [40.7562, -73.9869],
+            [40.7529, -73.9880], [40.7499, -73.9890], [40.7468, -73.9904],
+            [40.7438, -73.9918], [40.7410, -73.9930], [40.7381, -73.9915],
+            [40.7350, -73.9910]
+        ];
+
+        const routeFifthAve = [
+            [40.7644, -73.9730], [40.7618, -73.9749], [40.7580, -73.9772],
+            [40.7548, -73.9796], [40.7516, -73.9818], [40.7479, -73.9840],
+            [40.7443, -73.9865], [40.7408, -73.9890], [40.7369, -73.9915],
+            [40.7310, -73.9969]
+        ];
+
+        const routeEleventhAve = [
+            [40.7685, -73.9958], [40.7656, -73.9972], [40.7628, -73.9986],
+            [40.7600, -74.0003], [40.7562, -74.0020], [40.7525, -74.0038],
+            [40.7485, -74.0055], [40.7448, -74.0070], [40.7410, -74.0075],
+            [40.7369, -74.0089], [40.7330, -74.0105]
+        ];
+
+        const routesConfig = {
+            "101": {
+                name: "Broadway Avenue (R-101)",
+                length: 3.5,
+                points: routeBroadway,
+                potholes: [],
+                slowdown: 0,
+                damageRisk: 0,
+                rqi: 100.0,
+                speed: 42
+            },
+            "102": {
+                name: "5th Avenue Express (R-102)",
+                length: 4.2,
+                points: routeFifthAve,
+                potholes: [{ severity: 'shallow' }, { severity: 'medium' }],
+                slowdown: 5.5,
+                damageRisk: 6.0,
+                rqi: 93.0,
+                speed: 48
+            },
+            "103": {
+                name: "11th Ave Freight Bypass (R-103)",
+                length: 5.1,
+                points: routeEleventhAve,
+                potholes: [
+                    { severity: 'severe' }, { severity: 'severe' }, 
+                    { severity: 'medium' }, { severity: 'medium' },
+                    { severity: 'shallow' }, { severity: 'shallow' }
+                ],
+                slowdown: 46.0,
+                damageRisk: 78.0,
+                rqi: 42.0,
+                speed: 24
+            }
+        };
+
+        let activeRouteId = "101";
+        let vehicleIndex = 0;
+        let map = null;
+        let tileLayer = null;
+        let activeGlowLine = null;
+        let activeMainLine = null;
+        let backgroundLines = {};
+        let carMarker = null;
+        let potholeMarkers = [];
+        let simulationInterval = null;
+        let activeMarkerAnimation = null;
+
+        // Chart.js global instances
+        let depthChart = null;
+        let timelineChart = null;
+        let healthGaugeChart = null;
+
+        // Leaflet Map Initialization
+        function initMap() {
+            if (map) return;
+            
+            // Central Manhattan coordinates
+            map = L.map('map', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([40.7590, -73.9845], 14);
+
+            const theme = localStorage.getItem("pothole-theme") || "dark";
+            const tileUrl = theme === "light" 
+                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+            tileLayer = L.tileLayer(tileUrl, {
+                maxZoom: 19
+            }).addTo(map);
+
+            updateRoutePath();
+        }
+
+        function updateRoutePath() {
+            if (!map) return;
+
+            // Clear previous active layers
+            if (activeGlowLine) map.removeLayer(activeGlowLine);
+            if (activeMainLine) map.removeLayer(activeMainLine);
+            
+            // Clear background lines if any
+            Object.values(backgroundLines).forEach(line => {
+                if (line) map.removeLayer(line);
+            });
+            backgroundLines = {};
+
+            if (carMarker) map.removeLayer(carMarker);
+            potholeMarkers.forEach(m => map.removeLayer(m));
+            potholeMarkers = [];
+
+            const theme = localStorage.getItem("pothole-theme") || "dark";
+            const activeColor = theme === "light" ? "#1d4ed8" : "#60a5fa";
+            const activeGlow = theme === "light" ? "rgba(29, 78, 216, 0.2)" : "rgba(96, 165, 250, 0.25)";
+            const inactiveColor = theme === "light" ? "#9ca3af" : "#4b5563";
+
+            // Draw all tracks
+            Object.keys(routesConfig).forEach(id => {
+                const r = routesConfig[id];
+                if (id === activeRouteId) {
+                    // Active route with neon glow + main line
+                    activeGlowLine = L.polyline(r.points, {
+                        color: activeColor,
+                        weight: 10,
+                        opacity: 0.25,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(map);
+                    
+                    activeMainLine = L.polyline(r.points, {
+                        color: activeColor,
+                        weight: 4,
+                        opacity: 0.95,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(map);
+                } else {
+                    // Inactive route as subtle dashed track
+                    backgroundLines[id] = L.polyline(r.points, {
+                        color: inactiveColor,
+                        weight: 3,
+                        opacity: 0.35,
+                        dashArray: '5, 8',
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(map);
+                }
+            });
+
+            const route = routesConfig[activeRouteId];
+            if (activeMainLine) {
+                map.fitBounds(activeMainLine.getBounds(), { padding: [40, 40] });
+            }
+
+            // Initialize custom animated vehicle icon
+            const carIcon = L.divIcon({
+                className: 'custom-car-icon',
+                html: `<div class="radar-pulse" style="background: ${activeGlow}; border-color: ${activeColor};"></div><div class="vehicle-core" style="background: ${activeColor}; box-shadow: 0 0 10px ${activeGlow};"></div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            vehicleIndex = 0;
+            carMarker = L.marker(route.points[0], { icon: carIcon }).addTo(map);
+        }
+
+        // Smoothly animate vehicle marker along segment using requestAnimationFrame
+        function animateMarker(marker, startLatLng, endLatLng, duration) {
+            if (activeMarkerAnimation) {
+                cancelAnimationFrame(activeMarkerAnimation);
+            }
+            
+            const startTime = performance.now();
+            
+            function step(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const lat = startLatLng[0] + (endLatLng[0] - startLatLng[0]) * progress;
+                const lng = startLatLng[1] + (endLatLng[1] - startLatLng[1]) * progress;
+                
+                if (marker) {
+                    marker.setLatLng([lat, lng]);
+                }
+                
+                if (progress < 1) {
+                    activeMarkerAnimation = requestAnimationFrame(step);
+                } else {
+                    activeMarkerAnimation = null;
+                }
+            }
+            
+            activeMarkerAnimation = requestAnimationFrame(step);
+        }
+
+        // Charts Initialization
+        function initCharts() {
+            const chartFontConfig = {
+                family: 'Plus Jakarta Sans',
+                size: 10
+            };
+
+            // Doughnut depth class distribution
+            const ctxDepth = document.getElementById('depthChart').getContext('2d');
+            depthChart = new Chart(ctxDepth, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Shallow', 'Medium', 'Severe'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#f59e0b', '#f97316', '#ef4444'],
+                        borderWidth: 1,
+                        borderColor: 'transparent'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: 'var(--text-secondary)', font: chartFontConfig }
+                        }
+                    }
+                }
+            });
+
+            // Line cumulative detections
+            const ctxTimeline = document.getElementById('timelineChart').getContext('2d');
+            timelineChart = new Chart(ctxTimeline, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Detections',
+                        data: [],
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: 'var(--text-muted)', font: chartFontConfig } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'var(--text-muted)', font: chartFontConfig } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Road Health Gauge chart
+            const ctxHealth = document.getElementById('healthGaugeChart').getContext('2d');
+            healthGaugeChart = new Chart(ctxHealth, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Damage', 'Health'],
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#ef4444', '#10b981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    rotation: -90,
+                    circumference: 180,
+                    cutout: '75%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        }
+
+        function updateAnalyticsDashboard(logRows) {
+            if (!logRows) return;
+
+            let shallow = 0, medium = 0, severe = 0;
+            let totalL = 0, totalW = 0, totalD = 0;
+            const timelineLabels = [];
+            const timelineData = [];
+
+            logRows.forEach((r, idx) => {
+                const depthVal = Number(r.depth_cm || 0);
+                if (depthVal < 5.0) shallow++;
+                else if (depthVal < 12.0) medium++;
+                else severe++;
+
+                totalL += Number(r.length_cm || 0);
+                totalW += Number(r.width_cm || 0);
+                totalD += depthVal;
+
+                timelineLabels.push(r.video_time);
+                timelineData.push(idx + 1);
+            });
+
+            const count = logRows.length || 1;
+            const avgL = totalL / count;
+            const avgW = totalW / count;
+            const avgD = totalD / count;
+
+            // Update charts
+            if (depthChart) {
+                depthChart.data.datasets[0].data = [shallow, medium, severe];
+                depthChart.update();
+            }
+
+            if (timelineChart) {
+                // Throttle timeline steps to fit chart constraints
+                const throttleCount = 12;
+                if (timelineLabels.length > throttleCount) {
+                    const step = Math.ceil(timelineLabels.length / throttleCount);
+                    const filteredLabels = [];
+                    const filteredData = [];
+                    for(let i = 0; i < timelineLabels.length; i += step) {
+                        filteredLabels.push(timelineLabels[i]);
+                        filteredData.push(timelineData[i]);
+                    }
+                    timelineChart.data.labels = filteredLabels;
+                    timelineChart.data.datasets[0].data = filteredData;
+                } else {
+                    timelineChart.data.labels = timelineLabels;
+                    timelineChart.data.datasets[0].data = timelineData;
+                }
+                timelineChart.update();
+            }
+
+
+
+            // Route metrics logic
+            const route = routesConfig[activeRouteId];
+            route.potholes = logRows;
+
+            // Recalculate indicators
+            const shCount = shallow;
+            const mdCount = medium;
+            const svCount = severe;
+            const totalCount = logRows.length;
+            
+            route.rqi = Math.max(0, 100.0 - (shCount * 1.8 + mdCount * 4.5 + svCount * 11.5)).toFixed(1);
+            route.slowdown = Math.min(78, (shCount * 1.2 + mdCount * 3.5 + svCount * 8.5)).toFixed(1);
+            route.damageRisk = Math.min(99, (mdCount * 5 + svCount * 22)).toFixed(1);
+
+            // Update main KPI cards
+            document.getElementById("kpi-total-potholes").textContent = totalCount;
+
+            // Update route specific stats in mapping panel
+            document.getElementById("route-val-density").textContent = `${(totalCount / route.length).toFixed(1)} / km`;
+            document.getElementById("route-val-rqi").textContent = route.rqi;
+            document.getElementById("route-val-rqi").style.color = route.rqi >= 85 ? "var(--success)" : (route.rqi >= 60 ? "var(--warning)" : "var(--danger)");
+
+            // Recalculate route recommendation index
+            updateRouteComparisonTable();
+        }
+
+        function updateRouteComparisonTable() {
+            const tbody = document.getElementById("route-comparison-rows");
+            tbody.innerHTML = "";
+
+            // Evaluate which route is best (highest RQI)
+            let bestRouteId = "101";
+            let maxRqi = -1;
+            Object.keys(routesConfig).forEach(id => {
+                const r = routesConfig[id];
+                const rScore = parseFloat(r.rqi);
+                if (rScore > maxRqi) {
+                    maxRqi = rScore;
+                    bestRouteId = id;
+                }
+            });
+
+            Object.keys(routesConfig).forEach(id => {
+                const r = routesConfig[id];
+                const tr = document.createElement("tr");
+                const potholesCount = r.potholes.length;
+                const densityVal = (potholesCount / r.length).toFixed(1);
+
+                const isRecommended = id === bestRouteId;
+                const recText = isRecommended 
+                    ? `<span style="color:var(--success); font-weight:700; background:rgba(16,185,129,0.1); padding:2px 8px; border-radius:10px; border:1px solid var(--success);">★ RECOMMENDED</span>` 
+                    : (r.rqi < 55 ? `<span style="color:var(--danger); font-weight:600;">AVOID ROUTE</span>` : `<span style="color:var(--text-muted);">ALTERNATIVE</span>`);
+
+                tr.innerHTML = `
+                    <td style="font-weight:600; color:var(--text-main);">${r.name}</td>
+                    <td>${potholesCount}</td>
+                    <td>${densityVal} / km</td>
+                    <td style="font-weight:700; color:${r.rqi >= 80 ? 'var(--success)' : (r.rqi >= 60 ? 'var(--warning)' : 'var(--danger)')};">${r.rqi}</td>
+                    <td>${r.slowdown}%</td>
+                    <td>${r.damageRisk}%</td>
+                    <td>${recText}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Active tab navigation switcher
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.classList.remove("active");
+            });
+            document.querySelectorAll(".tab-content").forEach(content => {
+                content.classList.remove("active");
+            });
+
+            // Find clicked button
+            const clickedBtn = Array.from(document.querySelectorAll(".tab-btn")).find(btn => {
+                return btn.textContent.toLowerCase().includes(tabId.split("-")[0]);
+            });
+            if (clickedBtn) clickedBtn.classList.add("active");
+
+            const activeContent = document.getElementById(tabId);
+            if (activeContent) {
+                activeContent.classList.add("active");
+                // Invalidate leaflet map size if resizing container
+                if (tabId === 'map-tab' && map) {
+                    setTimeout(() => map.invalidateSize(), 100);
+                }
+            }
+        }
+
+        // GPS simulation ticking
+        function startRouteSimulation() {
+            if (simulationInterval) clearInterval(simulationInterval);
+            if (activeMarkerAnimation) cancelAnimationFrame(activeMarkerAnimation);
+
+            const route = routesConfig[activeRouteId];
+            vehicleIndex = 0;
+
+            document.getElementById("route-val-length").textContent = `${route.length} km`;
+            document.getElementById("route-val-speed").textContent = `${route.speed} km/h`;
+
+            simulationInterval = setInterval(() => {
+                if (!carMarker || !map) return;
+                
+                const startCoord = route.points[vehicleIndex];
+                vehicleIndex = (vehicleIndex + 1) % route.points.length;
+                const endCoord = route.points[vehicleIndex];
+                
+                animateMarker(carMarker, startCoord, endCoord, 1200);
+                map.panTo(endCoord, { animate: true, duration: 1.2 });
+
+                const progressPct = Math.round((vehicleIndex / (route.points.length - 1)) * 100);
+                document.getElementById("route-val-progress").textContent = `${progressPct}%`;
+                
+                // Update simulated vehicle distance
+                const currentDist = ((vehicleIndex / route.points.length) * route.length).toFixed(1);
+                document.getElementById("route-val-length").textContent = `${currentDist} / ${route.length} km`;
+
+            }, 1200);
+        }
+
+        function stopRouteSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+            if (activeMarkerAnimation) {
+                cancelAnimationFrame(activeMarkerAnimation);
+                activeMarkerAnimation = null;
+            }
+        }
+
+        // Add GPS map marker for detected pothole
+        function plotPotholeOnMap(severity) {
+            if (!map || !carMarker) return;
+
+            const currentPos = carMarker.getLatLng();
+            
+            // Add a small location jitter so stacked frames don't overlap exactly
+            const jitterLat = currentPos.lat + (Math.random() - 0.5) * 0.00018;
+            const jitterLng = currentPos.lng + (Math.random() - 0.5) * 0.00018;
+
+            let color = '#f59e0b'; // shallow
+            if (severity === 'medium') color = '#f97316';
+            else if (severity === 'severe') color = '#ef4444';
+
+            const marker = L.circleMarker([jitterLat, jitterLng], {
+                radius: 8,
+                fillColor: color,
+                color: '#fff',
+                weight: 1.5,
+                opacity: 1,
+                fillOpacity: 0.85
+            }).addTo(map);
+
+            marker.bindPopup(`<strong>Hazard Logged</strong><br>Severity: ${severity.toUpperCase()}`);
+            potholeMarkers.push(marker);
+        }
+
+        // Error message wrappers
+        function showFeedError(message) {
+            feedError.textContent = message;
+            feedError.style.display = "block";
+        }
+
+        function clearFeedError() {
+            feedError.textContent = "";
+            feedError.style.display = "none";
+        }
+
+        function setPlaceholderVisible(visible) {
+            feedPlaceholder.style.display = visible ? "flex" : "none";
+        }
+
+        function openShotModal(src) {
+            modalShot.src = src;
+            shotModal.classList.add("open");
+        }
+
+        function closeShotModal() {
+            shotModal.classList.remove("open");
+            modalShot.removeAttribute("src");
+        }
+
+        function queueFeedRetry() {
+            if (feedRetries >= MAX_FEED_RETRIES) {
+                showFeedError("Video feed failed to load. Check source and press Start Detection again.");
+                return;
+            }
+
+            if (feedRetryTimer) {
+                clearTimeout(feedRetryTimer);
+            }
+
+            const nextRetry = ++feedRetries;
+            showFeedError(`Video feed interrupted. Retrying (${nextRetry}/${MAX_FEED_RETRIES})...`);
+            feedRetryTimer = setTimeout(() => {
+                const src = feed.getAttribute("data-stream-url");
+                if (src) {
+                    feed.src = `${src}?t=${Date.now()}`;
+                }
+            }, 650);
+        }
+
+        async function postJSON(url, payload = {}) {
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    return { ok: false, error: data.error || `Request failed (${response.status})` };
+                }
+                return data;
+            } catch (_e) {
+                return { ok: false, error: "Server unreachable. Check network/server status." };
+            }
+        }
+
+        function updateModeUI() {
+            const isUpload = activeMode === "upload";
+            const isPhone = activeMode === "phone";
+            const isStream = activeMode === "stream";
+            const isUsb = activeMode === "usb";
+
+            document.getElementById("tab-upload").classList.toggle("active", isUpload);
+            document.getElementById("tab-phone").classList.toggle("active", isPhone);
+            document.getElementById("tab-stream").classList.toggle("active", isStream);
+            document.getElementById("tab-usb").classList.toggle("active", isUsb);
+
+            document.getElementById("upload-controls").style.display = isUpload ? "grid" : "none";
+            document.getElementById("phone-controls").style.display = isPhone ? "grid" : "none";
+            document.getElementById("stream-controls").style.display = isStream ? "grid" : "none";
+            document.getElementById("usb-controls").style.display = isUsb ? "grid" : "none";
+
+            let headerText = "Mode: Video Upload";
+            if (isPhone) headerText = "Mode: Phone Browser";
+            else if (isStream) headerText = "Mode: RTSP/IP Stream";
+            else if (isUsb) headerText = "Mode: USB Webcam";
+
+            document.getElementById("active-mode-badge").textContent = headerText;
+        }
+
+        async function switchMode(mode) {
+            const data = await postJSON("/select_mode", { mode });
+            if (!data.ok) {
+                alert(data.error || "Failed to switch mode.");
+                return;
+            }
+            activeMode = mode;
+            updateModeUI();
+        }
+
+        async function uploadVideo() {
+            const fileInput = document.getElementById("video-file");
+            if (!fileInput.files.length) {
+                alert("Choose a video file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("video", fileInput.files[0]);
+
+            let data = {};
+            try {
+                const response = await fetch("/upload_video", { method: "POST", body: formData });
+                data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    alert(data.error || `Upload failed (${response.status}).`);
+                    return;
+                }
+            } catch (_e) {
+                alert("Upload failed. Check server connection.");
+                return;
+            }
+
+            if (!data.ok) {
+                alert(data.error || "Upload failed.");
+                return;
+            }
+
+            activeMode = "upload";
+            updateModeUI();
+            alert(`Video ready: ${data.filename}`);
+        }
+
+        async function startDetection() {
+            const data = await postJSON("/start_detection");
+            if (!data.ok) {
+                alert(data.error || "Unable to start detection.");
+                return;
+            }
+            clearFeedError();
+            feedRetries = 0;
+            feed.setAttribute("data-stream-url", data.video_url || "/video_feed");
+            feed.src = `${feed.getAttribute("data-stream-url")}?t=${Date.now()}`;
+            setPlaceholderVisible(false);
+            
+            // Map simulated vehicle loop trigger
+            startRouteSimulation();
+        }
+
+        async function setStreamSource() {
+            const streamUrl = document.getElementById("stream-url").value.trim();
+            if (!streamUrl) {
+                alert("Enter an RTSP/IP stream URL first.");
+                return;
+            }
+
+            const data = await postJSON("/set_stream_source", { stream_url: streamUrl });
+            if (!data.ok) {
+                alert(data.error || "Failed to set stream URL.");
+                return;
+            }
+
+            activeMode = "stream";
+            updateModeUI();
+            alert("RTSP/IP stream source configured.");
+        }
+
+        async function setUsbCamera() {
+            const index = document.getElementById("usb-camera-index").value;
+            const data = await postJSON("/set_usb_camera", { camera_index: parseInt(index, 10) });
+            
+            if (!data.ok) {
+                alert(data.error || "Failed to set USB camera.");
+                return;
+            }
+
+            activeMode = "usb";
+            updateModeUI();
+            alert(`USB Camera set to index ${index}. Press Start Detection to view feed.`);
+        }
+
+        async function fetchUsbStatus() {
+            try {
+                const response = await fetch("/usb_status");
+                const data = await response.json();
+                if (data.ok) {
+                    const select = document.getElementById("usb-camera-index");
+                    select.innerHTML = "";
+                    if (data.cameras && data.cameras.length > 0) {
+                        data.cameras.forEach(cam => {
+                            const option = document.createElement("option");
+                            option.value = cam.index;
+                            option.textContent = cam.label;
+                            if (cam.index === data.suggested_index) {
+                                option.selected = true;
+                                option.textContent += " (Recommended)";
+                            }
+                            select.appendChild(option);
+                        });
+                        document.getElementById("usb-status-text").textContent = `Found ${data.camera_count} cameras.`;
+                    } else {
+                        const option = document.createElement("option");
+                        option.value = "1";
+                        option.textContent = "Camera 1 (Default)";
+                        select.appendChild(option);
+                        document.getElementById("usb-status-text").textContent = "No working cameras auto-detected. Try manually selecting index.";
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch USB status", e);
+            }
+        }
+
+        async function stopDetection() {
+            await postJSON("/stop_detection");
+            if (feedRetryTimer) {
+                clearTimeout(feedRetryTimer);
+                feedRetryTimer = null;
+            }
+            feed.removeAttribute("data-stream-url");
+            feed.removeAttribute("src");
+            clearFeedError();
+            setPlaceholderVisible(true);
+            
+            // Map stop
+            stopRouteSimulation();
+        }
+
+        async function setUploadPlayback(payload) {
+            const data = await postJSON("/set_upload_playback", payload);
+            if (!data.ok) {
+                alert(data.error || "Failed to update playback controls.");
+            }
+        }
+
+        function appendLogRows(rows) {
+            if (!rows || rows.length === 0) {
+                return;
+            }
+
+            const tbody = document.getElementById("log-body");
+            const frag = document.createDocumentFragment();
+
+            rows.forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.classList.add("new-row");
+                tr.id = `log-row-${row.id}`;
+                tr.innerHTML = `
+                    <td style="font-family:var(--font-mono);">${row.video_time || ""}</td>
+                    <td>${row.pothole_detected || "No"}</td>
+                    <td style="font-weight:700;">${row.total_count ?? 0}</td>
+                    <td>${Number(row.length_cm || 0).toFixed(1)}</td>
+                    <td>${Number(row.width_cm || 0).toFixed(1)}</td>
+                    <td>${Number(row.depth_cm || 0).toFixed(1)}</td>
+                    <td>
+                        <span style="font-weight:700; color:${row.depth_class === 'severe' ? 'var(--danger)' : (row.depth_class === 'medium' ? 'var(--warning)' : 'var(--success)')}">
+                            ${(row.depth_class || 'none').toUpperCase()}
+                        </span>
+                    </td>
+                    <td>
+                        ${row.screenshot
+                            ? `<a class="shot-link" href="${row.screenshot}" data-shot="${row.screenshot}"><img src="${row.screenshot}" alt="shot" /></a>`
+                            : "—"}
+                    </td>
+                    <td><button class="btn" style="padding: 4px 8px; font-size: 0.75rem; background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); width:auto;" onclick="deleteLog(${row.id})">Delete</button></td>
+                `;
+                frag.appendChild(tr);
+
+                // Dynamically place marker on Leaflet map on detection
+                plotPotholeOnMap(row.depth_class || 'shallow');
+            });
+
+            tbody.appendChild(frag);
+
+            while (tbody.rows.length > MAX_TABLE_ROWS) {
+                tbody.deleteRow(0);
+            }
+
+            const scroller = tbody.closest(".table-scroll");
+            if (scroller) {
+                const atBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 50;
+                if (atBottom) {
+                    scroller.scrollTop = scroller.scrollHeight;
+                }
+            }
+        }
+
+        async function updateLog() {
+            try {
+                const response = await fetch(`/detection_log?since_id=${lastLogId}`);
+                const data = await response.json();
+                if (!data.ok) {
+                    return;
+                }
+                appendLogRows(data.rows || []);
+                lastLogId = Number(data.last_id || lastLogId);
+
+                // Pull absolute log array to refresh general charts
+                if (data.rows && data.rows.length > 0) {
+                    fetchFullLogsToUpdateCharts();
+                }
+            } catch (_e) {
+                // Ignore transient log polling errors.
+            }
+        }
+
+        async function fetchFullLogsToUpdateCharts() {
+            try {
+                const response = await fetch('/detection_log?since_id=0');
+                const data = await response.json();
+                if (data.ok) {
+                    updateAnalyticsDashboard(data.rows || []);
+                }
+            } catch (e) {
+                console.error("Failed to load logs for chart updates", e);
+            }
+        }
+
+        async function deleteLog(logId) {
+            if (!confirm("Delete this log entry?")) return;
+            try {
+                const response = await fetch(`/delete_log/${logId}`, { method: "DELETE" });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) {
+                    alert(data.error || "Failed to delete log entry.");
+                    return;
+                }
+                const row = document.getElementById(`log-row-${logId}`);
+                if (row) row.remove();
+                fetchFullLogsToUpdateCharts();
+            } catch (e) {
+                alert("Server unreachable.");
+            }
+        }
+
+        function resetLogTable() {
+            document.getElementById("log-body").innerHTML = "";
+            lastLogId = 0;
+            if (depthChart) {
+                depthChart.data.datasets[0].data = [0, 0, 0];
+                depthChart.update();
+            }
+            if (timelineChart) {
+                timelineChart.data.labels = [];
+                timelineChart.data.datasets[0].data = [];
+                timelineChart.update();
+            }
+            if (healthGaugeChart) {
+                healthGaugeChart.data.datasets[0].data = [0, 100];
+                healthGaugeChart.update();
+                document.getElementById("gauge-score").textContent = "100.0";
+                const label = document.getElementById("gauge-label");
+                if (label) {
+                    label.textContent = "Excellent";
+                    label.style.color = "var(--success)";
+                }
+            }
+            // Clear map pothole markers
+            potholeMarkers.forEach(m => map.removeLayer(m));
+            potholeMarkers = [];
+        }
+
+        function downloadReport() {
+            window.location.href = `/download_report?t=${Date.now()}`;
+        }
+
+        function downloadSamples() {
+            window.location.href = `/download_samples?t=${Date.now()}`;
+        }
+
+        async function applyCalibration() {
+            const cm = document.getElementById("ref-cm").value;
+            const px = document.getElementById("ref-px").value;
+            const data = await postJSON("/set_calibration", { reference_cm: cm, reference_px: px });
+            if (!data.ok) {
+                alert(data.error || "Calibration failed.");
+                return;
+            }
+            alert(data.message);
+        }
+
+        async function resetCalibration() {
+            const data = await postJSON("/set_calibration", { reference_cm: null, reference_px: null });
+            document.getElementById("ref-cm").value = "";
+            document.getElementById("ref-px").value = "";
+            alert(data.message || "Calibration reset.");
+        }
+
+        function styleStatusPill(status) {
+            const pill = document.getElementById("status-pill");
+            pill.classList.remove("running", "warning", "stopped", "idle");
+            if (["running", "warning", "stopped", "idle"].includes(status)) {
+                pill.classList.add(status);
+            }
+            pill.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch("/detection_stats");
+                const s = await response.json();
+
+                styleStatusPill(s.status || "idle");
+                document.getElementById("status-message").textContent = s.status_message || "";
+                if (s.last_error && (s.status === "warning" || s.status === "stopped")) {
+                    showFeedError(s.last_error);
+                } else if (s.status === "running") {
+                    clearFeedError();
+                }
+                const phoneEndpoint = document.getElementById("phone-endpoint");
+                phoneEndpoint.value = `${window.location.origin}${s.phone_endpoint || "/video"}`;
+
+                activeMode = s.mode || activeMode;
+                updateModeUI();
+
+                document.getElementById("st-status").textContent = s.status || "idle";
+                document.getElementById("st-device").textContent = s.device || "CPU";
+                document.getElementById("st-detections").textContent = s.detections ?? 0;
+                document.getElementById("st-total").textContent = s.total_potholes ?? 0;
+                document.getElementById("st-dpm").textContent = Number(s.detections_per_min || 0).toFixed(1);
+                document.getElementById("st-cfps").textContent = `${Number(s.capture_fps || 0).toFixed(1)} FPS`;
+                document.getElementById("st-ifps").textContent = `${Number(s.infer_fps || 0).toFixed(1)} FPS`;
+                document.getElementById("st-sfps").textContent = `${Number(s.stream_fps || 0).toFixed(1)} FPS`;
+                document.getElementById("st-lat").textContent = `${Number(s.latency_ms || 0).toFixed(0)} ms`;
+                document.getElementById("st-conf").textContent = Number(s.avg_confidence || 0).toFixed(2);
+                document.getElementById("st-length").textContent = `${Number(s.avg_length_cm || 0).toFixed(1)} cm`;
+                document.getElementById("st-width").textContent = `${Number(s.avg_width_cm || 0).toFixed(1)} cm`;
+                document.getElementById("st-area").textContent = `${Number(s.avg_area_m2 || 0).toFixed(2)} m²`;
+                document.getElementById("st-depth").textContent = `${Number(s.avg_depth_cm || 0).toFixed(1)} cm`;
+
+                // Update 5 KPI Cards
+                document.getElementById("kpi-total-potholes").textContent = s.total_potholes ?? 0;
+                
+                const healthVal = s.road_health_score !== undefined ? Number(s.road_health_score) : 100.0;
+                document.getElementById("kpi-road-health").textContent = healthVal.toFixed(1);
+                
+                const healthSub = document.getElementById("kpi-road-health-sub");
+                const healthIcon = document.getElementById("kpi-road-health-icon");
+                if (healthSub && healthIcon) {
+                    healthSub.className = "kpi-sub";
+                    healthSub.textContent = s.road_health_category || "Excellent Condition";
+                    if (healthVal >= 80) {
+                        healthSub.classList.add("excellent");
+                        healthIcon.style.color = "var(--success)";
+                    } else if (healthVal >= 60) {
+                        healthSub.classList.add("fair");
+                        healthIcon.style.color = "var(--warning)";
+                    } else {
+                        healthSub.classList.add("critical");
+                        healthIcon.style.color = "var(--danger)";
+                    }
+                }
+
+                const avgDepthVal = s.avg_depth_cm !== undefined ? Number(s.avg_depth_cm) : 0.0;
+                document.getElementById("kpi-avg-depth").textContent = `${avgDepthVal.toFixed(1)} cm`;
+                
+                const riskVal = s.risk_level || "Low Risk";
+                document.getElementById("kpi-risk-level").textContent = riskVal;
+                
+                const riskSub = document.getElementById("kpi-risk-sub");
+                const riskIcon = document.getElementById("kpi-risk-icon");
+                if (riskSub && riskIcon) {
+                    riskSub.textContent = riskVal === "Critical Risk" ? "Hazardous conditions!" : (riskVal === "High Risk" ? "High deterioration warnings" : (riskVal === "Medium Risk" ? "Moderate hazards warning" : "All systems normal"));
+                    riskSub.style.color = riskVal === "Critical Risk" ? "var(--danger)" : (riskVal === "High Risk" ? "var(--danger)" : (riskVal === "Medium Risk" ? "var(--warning)" : "var(--success)"));
+                    riskIcon.style.color = riskVal === "Critical Risk" ? "var(--danger)" : (riskVal === "High Risk" ? "var(--danger)" : (riskVal === "Medium Risk" ? "var(--warning)" : "var(--success)"));
+                }
+
+                const costVal = s.repair_cost_estimate !== undefined ? Number(s.repair_cost_estimate) : 0;
+                document.getElementById("kpi-repair-cost").textContent = `₹${costVal.toLocaleString('en-IN')}`;
+
+                // Update health gauge chart
+                if (healthGaugeChart) {
+                    const damagePct = parseFloat((100.0 - healthVal).toFixed(1));
+                    const healthPct = parseFloat(healthVal.toFixed(1));
+                    healthGaugeChart.data.datasets[0].data = [damagePct, healthPct];
+                    healthGaugeChart.update();
+
+                    document.getElementById("gauge-score").textContent = healthPct.toFixed(1);
+                    const labelEl = document.getElementById("gauge-label");
+                    if (labelEl) {
+                        labelEl.textContent = s.road_health_category || "Excellent";
+                        if (healthPct >= 80) {
+                            labelEl.style.color = "var(--success)";
+                        } else if (healthPct >= 60) {
+                            labelEl.style.color = "var(--warning)";
+                        } else {
+                            labelEl.style.color = "var(--danger)";
+                        }
+                    }
+                }
+
+                // Update alerts banner
+                const alertsContainer = document.getElementById("alerts-banner-list");
+                if (alertsContainer) {
+                    let alertHtml = "";
+                    if (s.risk_level === "High Risk" || s.risk_level === "Critical Risk") {
+                        const isCritical = s.risk_level === "Critical Risk";
+                        alertHtml += `
+                            <div class="alert-item ${isCritical ? 'danger' : 'warning'}">
+                                <span class="alert-icon">⚠️</span>
+                                <div>
+                                    <strong>${s.risk_level.toUpperCase()}: Pavement Deterioration Warning!</strong>
+                                    <div style="font-size:0.72rem; opacity:0.85; margin-top:2px;">Road health score is low (${healthVal.toFixed(1)}/100). Maintenance recommended.</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    if (s.severe_count > 0) {
+                        alertHtml += `
+                            <div class="alert-item danger">
+                                <span class="alert-icon">🚨</span>
+                                <div>
+                                    <strong>SEVERE DAMAGE ALERT: Critical potholes logged!</strong>
+                                    <div style="font-size:0.72rem; opacity:0.85; margin-top:2px;">Logged ${s.severe_count} severe damage zones exceeding 12cm depth. Urgent repair required.</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    alertsContainer.innerHTML = alertHtml;
+                }
+
+                const slider = document.getElementById("speed-slider");
+                const speedVal = Number(s.upload_speed || slider.value || 0.8);
+                slider.value = speedVal.toFixed(1);
+                document.getElementById("speed-label").textContent = `${speedVal.toFixed(1)}x`;
+
+                const dClass = document.getElementById("st-dclass");
+                dClass.textContent = (s.depth_class || "none").toUpperCase();
+                dClass.style.color = (s.depth_class || "") === "severe" ? "var(--danger)" : ((s.depth_class || "") === "medium" ? "var(--warning)" : "var(--text-main)");
+            } catch (_e) {
+                // Ignore intermittent polling failures.
+            }
+        }
+
+        /* Event listeners */
+        document.getElementById("tab-upload").addEventListener("click", () => switchMode("upload"));
+        document.getElementById("tab-phone").addEventListener("click", () => switchMode("phone"));
+        document.getElementById("tab-stream").addEventListener("click", () => switchMode("stream"));
+        document.getElementById("tab-usb").addEventListener("click", () => { switchMode("usb"); fetchUsbStatus(); });
+        document.getElementById("upload-btn").addEventListener("click", uploadVideo);
+        document.getElementById("set-stream-btn").addEventListener("click", setStreamSource);
+        document.getElementById("set-usb-btn").addEventListener("click", setUsbCamera);
+        document.getElementById("refresh-usb-btn").addEventListener("click", fetchUsbStatus);
+        document.getElementById("start-btn").addEventListener("click", async () => {
+            resetLogTable();
+            await startDetection();
+        });
+        document.getElementById("stop-btn").addEventListener("click", stopDetection);
+        document.getElementById("download-report-btn").addEventListener("click", downloadReport);
+        document.getElementById("download-samples-btn").addEventListener("click", downloadSamples);
+        document.getElementById("apply-calib").addEventListener("click", applyCalibration);
+        document.getElementById("reset-calib").addEventListener("click", resetCalibration);
+        document.getElementById("play-upload-btn").addEventListener("click", () => setUploadPlayback({ paused: false }));
+        document.getElementById("pause-upload-btn").addEventListener("click", () => setUploadPlayback({ paused: true }));
+        document.getElementById("speed-slider").addEventListener("input", (event) => {
+            const speed = Number(event.target.value || 0.8);
+            document.getElementById("speed-label").textContent = `${speed.toFixed(1)}x`;
+        });
+        document.getElementById("speed-slider").addEventListener("change", (event) => {
+            const speed = Number(event.target.value || 0.8);
+            setUploadPlayback({ speed });
+        });
+
+        feed.addEventListener("load", () => {
+            feedRetries = 0;
+            clearFeedError();
+            setPlaceholderVisible(false);
+        });
+        feed.addEventListener("error", () => {
+            setPlaceholderVisible(true);
+            queueFeedRetry();
+        });
+
+        document.getElementById("log-body").addEventListener("click", (event) => {
+            const link = event.target.closest("a[data-shot]");
+            if (!link) return;
+            event.preventDefault();
+            openShotModal(link.getAttribute("data-shot"));
+        });
+
+        shotModal.addEventListener("click", (event) => {
+            if (event.target === shotModal) closeShotModal();
+        });
+        document.getElementById("close-shot-modal").addEventListener("click", closeShotModal);
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && shotModal.classList.contains("open")) closeShotModal();
+        });
+
+        // Route selection mapping controller
+        document.getElementById("route-selector").addEventListener("change", (event) => {
+            activeRouteId = event.target.value;
+            updateRoutePath();
+            // Reset simulated speed and active markers
+            if (simulationInterval) {
+                startRouteSimulation();
+            }
+            updateRouteComparisonTable();
+        });
+
+        /* Theme toggle styling */
+        function applyTheme(theme) {
+            document.documentElement.setAttribute("data-theme", theme);
+            const btn = document.getElementById("theme-toggle");
+            if (theme === "light") {
+                btn.innerHTML = "☀️ Light Mode";
+            } else {
+                btn.innerHTML = "🌙 Dark Mode";
+            }
+            localStorage.setItem("pothole-theme", theme);
+
+            // Update map tiles and tracks theme colors dynamically if map is initialized
+            if (map && tileLayer) {
+                const newTileUrl = theme === "light" 
+                    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+                tileLayer.setUrl(newTileUrl);
+                updateRoutePath();
+            }
+        }
+
+        const savedTheme = localStorage.getItem("pothole-theme") || "dark";
+        applyTheme(savedTheme);
+
+        document.getElementById("theme-toggle").addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-theme") || "dark";
+            applyTheme(current === "dark" ? "light" : "dark");
+        });
+
+        /* Initialization */
+        window.addEventListener("load", () => {
+            setPlaceholderVisible(true);
+            updateModeUI();
+            initMap();
+            initCharts();
+            updateStats();
+            updateLog();
+            updateRouteComparisonTable();
+            
+            setInterval(updateStats, 800);
+            setInterval(updateLog, 850);
+        });
+    </script>
+</body>
+</html>

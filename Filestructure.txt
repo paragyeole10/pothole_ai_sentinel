@@ -1,0 +1,37 @@
+========================================================================
+POTHOLE DETECTION SYSTEM - PROJECT FILE STRUCTURE
+========================================================================
+
+d:/Pothole-detection-system-main/
+│
+├── camera/                          # Camera integration utilities
+│   └── iVCam_x64_v7.4.0.exe        # Client installer for phone-as-webcam setup
+│
+├── sample_videos/                   # Demo video files for testing detection
+│   ├── demo.mp4                    # Sample video 1 (High resolution demo)
+│   ├── demo1.mp4                   # Sample video 2 (City road demo)
+│   └── demo2.mp4                   # Sample video 3 (Highway speed demo)
+│
+├── screenshots/                     # Saved detection snapshot images (Ignored in Git)
+│   └── pothole_*.jpg                # Captured pothole bounding box detections with dimensions
+│
+├── templates/                       # Frontend HTML templates for Flask server
+│   ├── index.html                  # Main CivicAI analytics dashboard & reporting console
+│   ├── login.html                  # User login / portal access page
+│   └── video.html                  # Phone browser camera uplink streaming utility
+│
+├── uploads/                         # Temporary directory for uploaded video files (Ignored in Git)
+│
+├── .gitignore                       # Git ignore definitions (caches, virtual env, uploads)
+├── app.py                           # Core Flask application, APIs, and YOLO inference pipeline
+├── best.pt                          # Trained YOLOv8 model weights for pothole detection
+├── PRD.md                           # Product Requirements Document
+├── README.md                        # Documentation (features, stack, APIs, runs)
+├── requirements.txt                 # Python dependencies configuration
+├── USB_CAMERA_SETUP.md              # Setup instructions for external USB cameras
+└── usb_camera.py                    # Standalone script for USB camera capture & verification
+
+========================================================================
+Notes:
+- The virtual environment folder `.venv/` and cache directories like 
+  `__pycache__/` are present in the local workspace but omitted above for brevity.

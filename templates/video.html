@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operator Camera Uplink | Pothole Sentinel</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg: #07090e;
+            --surface-card: rgba(18, 24, 38, 0.75);
+            --surface-solid: #0d111a;
+            --text-main: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent: #f59e0b;
+            --accent-glow: rgba(245, 158, 11, 0.25);
+            --border: rgba(245, 158, 11, 0.25);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --danger: #ef4444;
+            --success: #10b981;
+            
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --glass-blur: blur(16px);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, var(--text-main) 50%, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        /* Video viewfinder styled like HUD */
+        .viewfinder-box {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-subtle);
+            background: #000;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.85);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* HUD overlays */
+        .hud-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hud-rec-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--danger);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+            opacity: 0;
+        }
+
+        .streaming .hud-rec-dot {
+            animation: blink 1s infinite alternate;
+        }
+
+        @keyframes blink {
+            from { opacity: 0.2; }
+            to { opacity: 1; }
+        }
+
+        .hud-corners {
+            position: absolute;
+            inset: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Viewfinder HUD brackets */
+        .hud-corners::before, .hud-corners::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: var(--accent);
+            border-style: solid;
+            opacity: 0.6;
+        }
+
+        .hud-corners::before {
+            top: -2px; left: -2px;
+            border-width: 1.5px 0 0 1.5px;
+        }
+
+        .hud-corners::after {
+            bottom: -2px; right: -2px;
+            border-width: 0 1.5px 1.5px 0;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Buttons styling */
+        button {
+            flex: 1;
+            padding: 12px 14px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        #start {
+            background: linear-gradient(135deg, var(--accent), #d97706);
+            border: 1px solid var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        #start:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+            transform: translateY(-1px);
+        }
+
+        #stop {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+        }
+
+        #stop:hover:not(:disabled) {
+            background: var(--surface-hover);
+            border-color: var(--text-secondary);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #status-message {
+            background: var(--surface-solid);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pulse-text {
+            color: var(--success);
+            animation: pulse-light 1.5s infinite;
+        }
+
+        @keyframes pulse-light {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="control-container">
+        <div class="header">
+            <h1>📷 Operator Camera Uplink</h1>
+            <p>Stream real-time high-definition pavement inspection footage to the command console.</p>
+        </div>
+
+        <div class="viewfinder-box">
+            <video id="preview" autoplay playsinline muted></video>
+            <div class="hud-overlay">
+                <div class="hud-top">
+                    <div><span class="hud-rec-dot"></span><span>LIVE FEED</span></div>
+                    <div>FPS: <span id="hud-fps">00</span></div>
+                </div>
+                <div class="hud-corners"></div>
+                <div style="display:flex; justify-content:space-between;">
+                    <div>OP: ACUBE_SENTINEL</div>
+                    <div id="hud-res">0x0</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="status-message">Ready to stream. Tap 'Start Camera'.</div>
+
+        <div class="row-actions">
+            <button id="start">▶ Start Camera</button>
+            <button id="stop">■ Stop</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById("preview");
+        const statusEl = document.getElementById("status-message");
+        const container = document.getElementById("control-container");
+        const fpsEl = document.getElementById("hud-fps");
+        const resEl = document.getElementById("hud-res");
+        
+        let mediaStream = null;
+        let timer = null;
+        let inFlight = false;
+        let streaming = false;
+        let canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+        let targetIntervalMs = 45;
+        let jpegQuality = 0.5;
+        let consecutiveFails = 0;
+
+        function setStatus(text, isGreen = false) {
+            statusEl.innerHTML = isGreen ? `<span class="pulse-text">${text}</span>` : text;
+        }
+
+        async function sendFrame() {
+            if (!streaming || !mediaStream || video.videoWidth === 0 || video.videoHeight === 0 || inFlight) {
+                return;
+            }
+            inFlight = true;
+            const sendStart = performance.now();
+
+            const targetWidth = 560;
+            const scale = Math.min(1, targetWidth / video.videoWidth);
+            canvas.width = Math.round(video.videoWidth * scale);
+            canvas.height = Math.round(video.videoHeight * scale);
+            
+            // Set resolution overlay
+            resEl.textContent = `${canvas.width}x${canvas.height}`;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", jpegQuality));
+            if (!blob) {
+                inFlight = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/video_frame?ts=${Date.now()}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "image/jpeg" },
+                    body: blob
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server rejected frame (${response.status})`);
+                }
+
+                const rtt = performance.now() - sendStart;
+                targetIntervalMs = Math.max(28, Math.min(95, rtt * 0.62));
+                if (rtt > 170) {
+                    jpegQuality = Math.max(0.38, jpegQuality - 0.03);
+                } else if (rtt < 90) {
+                    jpegQuality = Math.min(0.58, jpegQuality + 0.01);
+                }
+                consecutiveFails = 0;
+                
+                const currentFps = Math.round(1000 / targetIntervalMs);
+                fpsEl.textContent = currentFps;
+                setStatus(`Uplink Active: Streaming ${canvas.width}x${canvas.height} @ ${currentFps} fps`, true);
+            } catch (err) {
+                consecutiveFails += 1;
+                if (consecutiveFails >= 10) {
+                    targetIntervalMs = Math.min(140, targetIntervalMs + 20);
+                }
+                fpsEl.textContent = "00";
+                setStatus(`Uplink Degraded (${consecutiveFails}). ${err.message}`);
+            } finally {
+                inFlight = false;
+            }
+        }
+
+        async function streamLoop() {
+            if (!streaming) {
+                return;
+            }
+            await sendFrame();
+            timer = setTimeout(streamLoop, targetIntervalMs);
+        }
+
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 640 },
+                        height: { ideal: 360 },
+                        frameRate: { ideal: 20, max: 24 }
+                    },
+                    audio: false
+                });
+                video.srcObject = mediaStream;
+                setStatus("Initializing Camera Uplink...");
+                streaming = true;
+                container.classList.add("streaming");
+                targetIntervalMs = 45;
+                jpegQuality = 0.5;
+                consecutiveFails = 0;
+
+                if (timer) {
+                    clearTimeout(timer);
+                }
+                streamLoop();
+            } catch (err) {
+                setStatus(`Camera Access Error: ${err.message}`);
+            }
+        }
+
+        function stopCamera() {
+            streaming = false;
+            container.classList.remove("streaming");
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+                mediaStream = null;
+            }
+            video.srcObject = null;
+            fpsEl.textContent = "00";
+            resEl.textContent = "0x0";
+            setStatus("Stream stopped.");
+        }
+
+        document.getElementById("start").addEventListener("click", startCamera);
+        document.getElementById("stop").addEventListener("click", stopCamera);
+    </script>
+</body>
+</html>
