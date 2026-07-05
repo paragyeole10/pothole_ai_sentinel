@@ -60,10 +60,14 @@ Single-frame detections are prone to counting duplicate detections as a vehicle 
 
 ### **C. Dimensional and Severity Estimation**
 The system estimates physical parameters (width, area, depth) using perspective camera mapping.
-1. **Calibration Input:** The user can calibrate the camera by specifying a reference target size in centimeters ($\text{cm}$) and pixels ($\text{px}$).
+1. **Calibration Input:** The user can calibrate the camera by specifying a reference target size in centimeters ($cm$) and pixels ($px$).
 2. **Dimension Scaling:** For a bounding box with width $W_{px}$ and height $H_{px}$:
-$$\text{Width (cm)} = W_{px} \times \left( \frac{\text{Reference}_{cm}}{\text{Reference}_{px}} \right)$$
-$$\text{Estimated Area (m}^2) = \frac{\pi}{4} \times \text{Width (m)} \times \text{Length (m)}$$
+$$
+\text{Width (cm)} = W_{px} \times \left( \frac{\text{Reference}_{cm}}{\text{Reference}_{px}} \right)
+$$
+$$
+\text{Estimated Area (m}^2) = \frac{\pi}{4} \times \text{Width (m)} \times \text{Length (m)}
+$$
 3. **Depth & Severity Classification:** Depth is estimated using perspective cues and aspect ratio changes. Potholes are classified into three severity levels:
    * **Shallow:** $< 3.0\text{ cm}$ depth (Low priority)
    * **Medium:** $3.0 - 6.0\text{ cm}$ depth (Medium priority)
@@ -74,7 +78,7 @@ $$\text{Estimated Area (m}^2) = \frac{\pi}{4} \times \text{Width (m)} \times \te
 ## **III. System Architecture and Implementation**
 
 ### **A. Multi-Threaded Inference Pipeline**
-To prevent frame lag during heavy inference, a dual-threaded architecture is implemented in [app.py](file:///d:/Pothole-detection-system-main/app.py):
+To prevent frame lag during heavy inference, a dual-threaded architecture is implemented in [app.py](app.py):
 1. **Capture Thread:** Reads raw frames from the source (upload, mobile stream, or RTSP) and writes them to a thread-safe frame queue.
 2. **Inference Thread:** Dequeues the latest frame, performs resizing (e.g., to $512\text{px}$), runs the YOLOv8 model, applies trackers, calculates dimensions, and stores the processed frame in an output queue.
 * **Buffer Trimming:** If the latency exceeds `TARGET_LATENCY_MS`, the queue is trimmed to only process the latest frame, preventing live feeds from falling behind real-time events.
@@ -83,7 +87,7 @@ To prevent frame lag during heavy inference, a dual-threaded architecture is imp
 The repository is structured to maintain a clear boundary between backend logic, frontend files, and test inputs:
 
 ```text
-d:/Pothole-detection-system-main/
+pothole_ai_sentinel/ (Root)
 │
 ├── camera/                          # Camera drivers and integration utilities
 │   └── iVCam_x64_v7.4.0.exe        # Client installer for phone-as-webcam setup
@@ -116,7 +120,7 @@ d:/Pothole-detection-system-main/
 ## **IV. Setup and Execution**
 
 ### **A. Installation Steps**
-To run this system locally, execute the following commands (detailed run instructions are documented in [propernotes.txt](file:///d:/Pothole-detection-system-main/propernotes.txt)):
+To run this system locally, execute the following commands (detailed run instructions are documented in [propernotes.txt](propernotes.txt)):
 
 1. **Activate virtual environment:**
    ```bash
@@ -157,21 +161,21 @@ python app.py
 #### **Figure 1: Authentication Portal**
 The application requires credentials to prevent unauthorized access. It is styled with a modern dark theme and custom glassmorphism components.
 
-![Authentication Portal Portal](file:///d:/Pothole-detection-system-main/screenshots/login_page.png)
+![Authentication Portal](screenshots/login_page.png)
 
 ---
 
 #### **Figure 2: Analytics & Live Tracking Dashboard**
 The main dashboard includes live MJPEG video streams, dynamic analytics charts displaying detection count over time, statistical cards (FPS, latency, totals), an interactive Leaflet JS map plotting pothole GPS coordinates, a tabular event log, and calibration controls.
 
-![Analytics Dashboard](file:///d:/Pothole-detection-system-main/screenshots/dashboard.png)
+![Analytics Dashboard](screenshots/dashboard.png)
 
 ---
 
 #### **Figure 3: Pothole Size & Bounding Box Detections**
 Below is an example of an annotated pothole frame. The model identifies the pothole, applies a bounding box tracker, and estimates structural parameters (Width, Area, Depth).
 
-![Pothole Detection Example](file:///d:/Pothole-detection-system-main/screenshots/pothole_10_1782058389987.jpg)
+![Pothole Detection Example](screenshots/pothole_10_1782058389987.jpg)
 
 ---
 
@@ -212,5 +216,3 @@ SmartRoad AI delivers a flexible, robust, and cost-effective solution for munici
 [4] Roboflow Supervision Library. [Online]. Available: https://github.com/roboflow/supervision
 [5] M. A. A. Al-Shaghouri et al., "Evaluation of Deep Learning Frameworks for Road Pothole Detection Under Challenging Environments," IEEE Access, vol. 11, pp. 24890-24905, 2023.
 ```
-#   p o t h o l e _ a i _ s e n t i n e l  
- 
